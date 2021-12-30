@@ -17,6 +17,9 @@
 #include QMK_KEYBOARD_H
 #include "muse.h"
 
+#define set_layer_rgblight(hsv) rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT); \
+                                rgblight_sethsv_noeeprom(hsv);
+
 // first note gets interrupted, so we delay the melody until the interruption happens
 float song_sleep[][2] = {QD_NOTE(_REST ), MARIO_GAMEOVER};
 
@@ -202,6 +205,28 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
       }
     return true;
 };
+
+layer_state_t layer_state_set_user(layer_state_t state) {
+    switch (get_highest_layer(state)) {
+    case _LOWER:
+        set_layer_rgblight(HSV_RED);
+        break;
+    case _RAISE:
+        set_layer_rgblight(HSV_BLUE);
+        break;
+    case _ADJUST:
+        set_layer_rgblight(HSV_MAGENTA);
+        break;
+    case _FN:
+        set_layer_rgblight(HSV_ORANGE);
+        break;
+    default:
+        rgblight_reload_from_eeprom();
+        break;
+    }
+
+    return state;
+}
 
 bool muse_mode = false;
 uint8_t last_muse_note = 0;
