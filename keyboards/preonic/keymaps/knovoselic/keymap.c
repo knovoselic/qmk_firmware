@@ -17,6 +17,9 @@
 #include QMK_KEYBOARD_H
 #include "muse.h"
 
+// first note gets interrupted, so we delay the melody until the interruption happens
+float song_sleep[][2] = {QD_NOTE(_REST ), MARIO_GAMEOVER};
+
 enum preonic_layers {
   _QWERTY,
   _LOWER,
@@ -167,6 +170,14 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             update_tri_layer(_LOWER, _RAISE, _ADJUST);
           }
           return false;
+          break;
+        case KC_SYSTEM_SLEEP:
+#ifdef AUDIO_ENABLE
+          if (record->event.pressed) {
+            PLAY_SONG(song_sleep);
+          }
+#endif
+          return true;
           break;
         case BACKLIT:
           if (record->event.pressed) {
