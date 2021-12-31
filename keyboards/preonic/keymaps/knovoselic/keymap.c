@@ -20,8 +20,12 @@
 #define set_layer_rgblight(hsv) rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT); \
                                 rgblight_sethsv_noeeprom(hsv);
 
+#ifdef AUDIO_ENABLE
+static inline void muse_matrix_scan_user(void);
+
 // first note gets interrupted, so we delay the melody until the interruption happens
 float song_sleep[][2] = {QD_NOTE(_REST ), MARIO_GAMEOVER};
+#endif
 
 enum preonic_layers {
   _QWERTY,
@@ -185,6 +189,12 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     return true;
 };
 
+void matrix_scan_user(void) {
+#ifdef AUDIO_ENABLE
+    muse_matrix_scan_user();
+#endif
+}
+
 layer_state_t layer_state_set_user(layer_state_t state) {
     switch (get_highest_layer(state)) {
     case _LOWER:
@@ -207,14 +217,14 @@ layer_state_t layer_state_set_user(layer_state_t state) {
     return state;
 }
 
+#ifdef AUDIO_ENABLE
 bool muse_mode = false;
 uint8_t last_muse_note = 0;
 uint16_t muse_counter = 0;
 uint8_t muse_offset = 70;
 uint16_t muse_tempo = 50;
 
-void matrix_scan_user(void) {
-#ifdef AUDIO_ENABLE
+static inline void muse_matrix_scan_user() {
     if (muse_mode) {
         if (muse_counter == 0) {
             uint8_t muse_note = muse_offset + SCALE[muse_clock_pulse()];
@@ -231,7 +241,6 @@ void matrix_scan_user(void) {
             muse_counter = 0;
         }
     }
-#endif
 }
 
 bool music_mask_user(uint16_t keycode) {
@@ -243,3 +252,4 @@ bool music_mask_user(uint16_t keycode) {
       return true;
   }
 }
+#endif
