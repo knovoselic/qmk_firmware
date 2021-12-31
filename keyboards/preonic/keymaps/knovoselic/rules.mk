@@ -12,6 +12,7 @@ CUSTOM_MATRIX              = yes
 ENCODER_ENABLE             = no
 DIP_SWITCH_ENABLE          = no
 PROGRAMMABLE_BUTTON_ENABLE = no
+RAW_ENABLE                 = yes
 
 # Do not enable RGB_MATRIX_ENABLE together with RGBLIGHT_ENABLE
 RGB_MATRIX_ENABLE   = no

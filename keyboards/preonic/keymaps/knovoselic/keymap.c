@@ -16,6 +16,7 @@
 
 #include QMK_KEYBOARD_H
 #include "muse.h"
+#include "raw_hid.h"
 
 #define set_layer_rgblight(hsv) rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT); \
                                 rgblight_sethsv_noeeprom(hsv);
@@ -189,10 +190,63 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     return true;
 };
 
+static bool rgb_timed_override_enabled = false;
+static uint16_t rgb_timed_override_timer = 0;
+static uint16_t rgb_timed_override_duration = 0;
+
 void matrix_scan_user(void) {
 #ifdef AUDIO_ENABLE
     muse_matrix_scan_user();
 #endif
+    if (rgb_timed_override_enabled && (timer_elapsed(rgb_timed_override_timer) > rgb_timed_override_duration)) {
+        rgb_timed_override_enabled = false;
+        rgblight_reload_from_eeprom();
+    }
+}
+
+
+enum raw_hid_commands {
+    RGB_TIMED_OVERRIDE = 0x00,
+    /*
+     * 00 - set RGB lighting to specific HSV for a specific time
+     *    - data[1]: hue (uint8)
+     *    - data[2]: saturation (uint8)
+     *    - data[3]: value (uint8)
+     *    - data[4-5]: duration in ms (uint16)
+     */
+};
+
+/*
+ * First byte in RAW HID data specifies command, other bits depend on the command.
+ */
+
+void raw_hid_receive(uint8_t *data, uint8_t length)
+{
+    if (length < 1) return;
+    uint8_t command = data[0];
+
+    switch(command) {
+        case RGB_TIMED_OVERRIDE:
+            if (length != 6) {
+                printf("RGB_TIMED_OVERRIDE: Expected length == 6, instead got %d\n", length);
+                return;
+            }
+
+            uint8_t hue = data[1];
+            uint8_t saturation = data[2];
+            uint8_t value = data[3];
+            rgb_timed_override_enabled = true;
+            rgb_timed_override_timer = timer_read();
+            rgb_timed_override_duration = (data[4] << 8) | data[5];
+
+            dprintf("Effect override duration: %d\n", rgb_timed_override_duration);
+            rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT);
+            rgblight_sethsv_noeeprom(hue, saturation, value);
+            break;
+        default:
+            dprintf("Unexpected RAW HID command: %d, data length: %d\n", command, length);
+            break;
+    }
 }
 
 layer_state_t layer_state_set_user(layer_state_t state) {
