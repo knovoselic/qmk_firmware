@@ -212,7 +212,7 @@ enum raw_hid_commands {
      *    - data[1]: hue (uint8)
      *    - data[2]: saturation (uint8)
      *    - data[3]: value (uint8)
-     *    - data[4-5]: duration in ms (uint16)
+     *    - data[4-5]: duration in ms (uint16) (little-endian)
      */
 };
 
@@ -237,7 +237,7 @@ void raw_hid_receive(uint8_t *data, uint8_t length)
             uint8_t value = data[3];
             rgb_timed_override_enabled = true;
             rgb_timed_override_timer = timer_read();
-            rgb_timed_override_duration = (data[4] << 8) | data[5];
+            rgb_timed_override_duration = (data[5] << 8) | data[4];
 
             dprintf("Effect override duration: %d\n", rgb_timed_override_duration);
             rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT);
