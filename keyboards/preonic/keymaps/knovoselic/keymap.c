@@ -18,9 +18,6 @@
 #include "muse.h"
 #include "raw_hid.h"
 
-#define set_layer_rgblight(hsv) rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT); \
-                                rgblight_sethsv_noeeprom(hsv);
-
 #ifdef AUDIO_ENABLE
 static inline void muse_matrix_scan_user(void);
 
@@ -204,6 +201,10 @@ void matrix_scan_user(void) {
     }
 }
 
+inline static void set_layer_rgblight(uint8_t hue, uint8_t saturation, uint8_t value) {
+    rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT);
+    rgblight_sethsv_noeeprom(hue, saturation, value);
+}
 
 enum raw_hid_commands {
     RGB_TIMED_OVERRIDE = 0x00,
@@ -240,8 +241,7 @@ void raw_hid_receive(uint8_t *data, uint8_t length)
             rgb_timed_override_duration = (data[5] << 8) | data[4];
 
             dprintf("Effect override duration: %d\n", rgb_timed_override_duration);
-            rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT);
-            rgblight_sethsv_noeeprom(hue, saturation, value);
+            set_layer_rgblight(hue, saturation, value);
             break;
         default:
             dprintf("Unexpected RAW HID command: %d, data length: %d\n", command, length);
@@ -250,22 +250,24 @@ void raw_hid_receive(uint8_t *data, uint8_t length)
 }
 
 layer_state_t layer_state_set_user(layer_state_t state) {
-    switch (get_highest_layer(state)) {
-    case _LOWER:
-        set_layer_rgblight(HSV_RED);
-        break;
-    case _RAISE:
-        set_layer_rgblight(HSV_BLUE);
-        break;
-    case _ADJUST:
-        set_layer_rgblight(HSV_MAGENTA);
-        break;
-    case _FN:
-        set_layer_rgblight(HSV_ORANGE);
-        break;
-    default:
-        rgblight_reload_from_eeprom();
-        break;
+    if (!rgb_timed_override_enabled) {
+        switch (get_highest_layer(state)) {
+        case _LOWER:
+            set_layer_rgblight(HSV_RED);
+            break;
+        case _RAISE:
+            set_layer_rgblight(HSV_BLUE);
+            break;
+        case _ADJUST:
+            set_layer_rgblight(HSV_MAGENTA);
+            break;
+        case _FN:
+            set_layer_rgblight(HSV_ORANGE);
+            break;
+        default:
+            rgblight_reload_from_eeprom();
+            break;
+        }
     }
 
     return state;
